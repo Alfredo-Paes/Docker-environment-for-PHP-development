@@ -1,0 +1,82 @@
+version: "3"
+
+services:
+  webserver:
+    build: 
+      context: ./bin/apache2
+    container_name: 'lab_webserver'
+    restart: 'always'
+    ports:
+      - "80:80"
+      - "443:443"
+    links: 
+      - mysql
+      - postgres
+      - phpmyadmin
+    volumes: 
+      - ${DOCUMENT_ROOT-./www}:/var/www/html
+      - ${PHP_INI-./config/php/php.ini}:/usr/local/etc/php/php.ini
+      - ${VHOSTS_DIR-./config/vhosts}:/etc/apache2/sites-enabled
+      - ${LOG_DIR-./logs/apache2}:/var/log/apache2
+  mysql:
+    build: ./bin/mysql
+    container_name: 'mysql'
+    restart: 'always'
+    ports:
+      - "3306:3306"
+    volumes: 
+      - ${MYSQL_DATA_DIR-./data/mysql}:/var/lib/mysql
+      - ${MYSQL_LOG_DIR-./logs/mysql}:/var/log/mysql
+    environment:
+    # User From MYSQL
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: labs
+      MYSQL_USER: lab
+      MYSQL_PASSWORD: 1234
+  phpmyadmin:
+    build: ./bin/phpmyadmin
+    container_name: 'lab_phpmyadmin'
+    links:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    ports:
+      - '8080:80'
+    volumes: 
+      - /sessions
+  redis:
+    container_name: 'lab_redis'
+    build: ./bin/redis
+    ports:
+      - "6379:6379"
+# User From Postgres
+  postgres:
+    container_name: lab_postgres
+    build: ./bin/postgres
+    environment:
+        - POSTGRES_USER=lab
+        - POSTGRES_PASSWORD=123456
+        - POSTGRES_DB=labs
+    volumes:
+       - ./data/postgres
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    container_name: lab_pgadmin4
+    build: ./bin/pgadmin
+    environment:
+      # User From PGADMIN 
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-laboratorio@lab.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-123456}
+    volumes:
+       - ./data/postgres
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    links:
+      - postgres
+    
+
+    
+
